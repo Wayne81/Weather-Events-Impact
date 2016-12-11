@@ -209,7 +209,7 @@ Storm$CropPower <- as.numeric(as.character(Storm$CropPower))
 hist(as.numeric(format(Storm$BGN_DATE,"%Y")),60,main="Event Frequency")
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png)
+![plot of chunk unnamed-chunk-4](Proj2-Plot1.png)
 
 The graphic shows the weather event frequency by year from 1950 to 2010.
 
@@ -230,7 +230,7 @@ barplot(fatal$TotalFatal, names.arg=fatal$EVTYPE, cex.names=0.5, col="blue", mai
 barplot(injury$TotalInjury, names.arg=injury$EVTYPE, cex.names=0.5, col="blue", main="INJURIES", las=2)
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png)
+![plot of chunk unnamed-chunk-5](Proj2-Plot2.png)
 
 Over all, TORNADO is the most harmful weather event to the population health.
 
@@ -251,7 +251,7 @@ barplot(PROP$TotalPROPDMG, names.arg=PROP$EVTYPE, cex.axis=0.5, cex.names=0.5, c
 barplot(CROP$TotalCROPDMG, names.arg=CROP$EVTYPE, cex.axis=0.5, cex.names=0.5, col="blue", main="Crop Demege", las=2)
 ```
 
-![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6-1.png)
+![plot of chunk unnamed-chunk-6](Proj2-Plot3.png)
 
 Over all, TORNADO is the most harmful weather event to the population health.
 
