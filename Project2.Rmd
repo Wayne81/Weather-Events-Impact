@@ -1,0 +1,143 @@
+---
+title: "Weather Events Impact to Human Health & Economic"
+author: "Wayne Chan"
+date: "December 8, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+setwd("C:/Users/Wayne/Documents/reproducible-research")
+```
+
+
+## Synopsis
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+Now, we will analysis the NOAA Storm Database and find out which weather event will most destroy public safety and economic. We will focus on the following questions:
+
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+
+## Data Processing
+
+Load the source data to memory for analysis and print some base information of the dataset.
+
+```{r}
+if(!file.exists("StormData.csv")) { 
+    ZipFile <- "./StormData.csv.bz2"
+    if(!file.exists(ZipFile)) {
+        ZipURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+        download.file(url=ZipURL,destfile=ZipFile,method="auto")
+    }  
+    bunzip2("./stormData.csv.bz2", overwrite=T, remove=F)
+	if (file.exists("StormData.csv")) file.remove("./stormData.csv.bz2")
+}
+
+Storm <- read.csv("./StormData.csv", header=TRUE, sep=",")
+dim(Storm)
+names(Storm)
+str(Storm)
+```
+
+The dataset is very large which have nearly a million records and 37 columns. But we will focuse on 7 columns as below for answering two required questions about population harmful and economic loss.
+
+EVTYPE: Event Type (e.g. tornado, flood, etc.)  
+FATALITIES: Number of fatalities  
+INJURIES: Number of injuries  
+PROPDMG: Property damage estimates, entered as actual dollar amounts  
+PROPDMGEXP: Alphabetic Codes to signify magnitude "K" for thousands, "M" for millions, and "B" for billions)  
+CROPDMG: Crop damage estimates, entered as actual dollar amounts  
+CROPDMGEXP: Alphabetic Codes to signify magnitude "K" for thousands, "M" for millions, and "B" for billions)
+
+
+### Data Cleansing
+
+For better analysis of event type, we use the upper case and trim the leading and eanding space.
+
+```{r}
+Storm$BGN_DATE <- as.Date(Storm$BGN_DATE,"%m/%d/%Y %H:%M:%S")
+#sort(unique(Storm$EVTYPE))
+trimSpace <- function (x) gsub("^\\s+|\\s+$", "", x)
+Storm$EVTYPE <- trimSpace(toupper(Storm$EVTYPE))
+```
+
+
+We will convert the property damage and crop damage data into comparable numerical forms according to the meaning of units. Both PROPDMGEXP and CROPDMGEXP columns record a multiplier for each observation where we have Hundred (H), Thousand (K), Million (M) and Billion (B).
+
+
+```{r}
+PROPDMGEXP  <- levels(Storm$PROPDMGEXP)
+PROPDMGEXP
+PropPower <- c(0,0,0,0,0,1,2,3,4,5,6,7,8,9,2,2,3,6,6)
+PropLookup <- data.frame(cbind(PROPDMGEXP,PropPower))
+PropLookup
+
+CROPDMGEXP <- levels(Storm$CROPDMGEXP)  
+CropPower <- c(0,0,0,2,9,3,3,6,6)
+CropLookup <- data.frame(cbind(CROPDMGEXP,CropPower))
+CropLookup
+
+Storm <- merge(Storm,PropLookup)
+Storm <- merge(Storm,CropLookup)
+
+Storm$PropPower <- as.numeric(as.character(Storm$PropPower))
+Storm$CropPower <- as.numeric(as.character(Storm$CropPower))
+```
+
+
+
+## Results
+
+```{r}
+hist(as.numeric(format(Storm$BGN_DATE,"%Y")),60,main="Event Frequency")
+```
+
+The graphic shows the weather event frequency by year from 1950 to 2010.
+
+
+```{r}
+require(dplyr)
+Harmful <- select(Storm, c(EVTYPE,FATALITIES,INJURIES)) %>% 
+           group_by(EVTYPE) %>% 
+           summarize(TotalFatal=sum(FATALITIES), TotalInjury=sum(INJURIES)) %>%
+		   mutate(TotalHarm=TotalFatal+TotalInjury)
+
+fatal  <- head(arrange(Harmful,desc(TotalFatal)))
+injury <- head(arrange(Harmful,desc(TotalInjury)))
+
+par(mfrow = c(1, 2))
+barplot(fatal$TotalFatal, names.arg=fatal$EVTYPE, cex.names=0.5, col="blue", main="FATALITIES", las=2)
+barplot(injury$TotalInjury, names.arg=injury$EVTYPE, cex.names=0.5, col="blue", main="INJURIES", las=2)
+```
+
+Over all, TORNADO is the most harmful weather event to the population health.
+
+
+
+```{r}
+ecoDMG <- select(Storm, c(EVTYPE,PROPDMG,PropPower,CROPDMG,CropPower)) %>% 
+          group_by(EVTYPE) %>% 
+          summarize(TotalPROPDMG=sum(PROPDMG*10^PropPower), TotalCROPDMG=sum(CROPDMG*10^CropPower)) %>%
+		  mutate(TotalDMG=TotalPROPDMG+TotalCROPDMG)
+
+PROP <- head(arrange(ecoDMG,desc(TotalPROPDMG)))
+CROP <- head(arrange(ecoDMG,desc(TotalCROPDMG)))
+
+par(mfrow = c(1, 2))
+barplot(PROP$TotalPROPDMG, names.arg=PROP$EVTYPE, cex.axis=0.5, cex.names=0.5, col="blue", main="Property Demege", las=2)
+barplot(CROP$TotalCROPDMG, names.arg=CROP$EVTYPE, cex.axis=0.5, cex.names=0.5, col="blue", main="Crop Demege", las=2)
+```
+
+Over all, TORNADO is the most harmful weather event to the population health.
+
+
+## Conclusions
+
+Obviously, the most harmful weather event is tornado, which has caused more than 90 thousands injuries and more than 5 thousands fatalities in the past 60 years in USA. From another point of view, flooding had the greatest economic consequences, with around 150 billion dollars in property damages and around 6 billion dollars in crop damages.
